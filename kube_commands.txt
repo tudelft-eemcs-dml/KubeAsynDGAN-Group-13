@@ -1,0 +1,19 @@
+# Set env
+export KUBECONFIG=~/.kube/config
+
+# List Dataset
+./kubeml dataset create --name mnist_disc --traindata train_real.npy --trainlabels train_fake.npy --testdata test_real.npy --testlabels test_fake.npy
+
+# List function
+./kubeml fn create --name discriminator --code function_discriminator.py
+./fission fn update --name discriminator --code function_discriminator.py
+
+# Train 
+./kubeml train --function discriminator --dataset mnist_disc --epochs 100 --lr 0.01 --batch 64 --parallelism 4 --static
+
+# Logs
+./kubeml logs --id (ID) --follow
+
+# Inference
+./kubeml --datafile train_real.npy --network (Network ID)
+

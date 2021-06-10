@@ -38,7 +38,7 @@ class Discriminator(nn.Module):
 class MnistDataset(KubeDataset):
 
     def __init__(self):
-        super().__init__("mnist")
+        super().__init__("mnist_disc")
 
     def __getitem__(self, index):
         x_real = self.data[index]
@@ -69,7 +69,7 @@ class KubeDiscriminator(KubeModel):
 
         x_r, x_f = batch
 
-        bs = batch[0].shape[0]
+        bs = self.batch_size
 
         self.optimizer.zero_grad()
 
@@ -105,7 +105,7 @@ class KubeDiscriminator(KubeModel):
 
         x_r, x_f = batch
 
-        bs = batch[0].shape[0]
+        bs = self.batch_size
 
         test_loss = 0
         correct = 0

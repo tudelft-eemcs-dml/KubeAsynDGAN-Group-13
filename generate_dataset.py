@@ -15,7 +15,8 @@ from torchvision.utils import save_image
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-generate = False
+generate = True
+download = True
 train_size = 5000
 test_size = 1000
 
@@ -24,8 +25,8 @@ if generate:
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.1307,), (0.3081,))])
 
-    mnist_trainset = datasets.MNIST(root='./data', train=True, download=False, transform=transform)
-    mnist_testset = datasets.MNIST(root='./data', train=False, download=False, transform=transform)
+    mnist_trainset = datasets.MNIST(root='./data', train=True, download=download, transform=transform)
+    mnist_testset = datasets.MNIST(root='./data', train=False, download=download, transform=transform)
 
     train_loader = DataLoader(mnist_trainset, batch_size=len(mnist_trainset))
     test_loader = DataLoader(mnist_testset, batch_size=len(mnist_testset))
