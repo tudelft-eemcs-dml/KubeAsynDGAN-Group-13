@@ -35,7 +35,6 @@ class Discriminator(nn.Module):
         y = torch.sigmoid(self.fc4(y))
         return y
 
-
 class MnistDataset(KubeDataset):
 
     def __init__(self):
@@ -65,24 +64,26 @@ class KubeDiscriminator(KubeModel):
 
     def train(self, batch, batch_index) -> float:
         # define the device for training and load the data
-        criterion = nn.BCELoss()  # ??
+        criterion = nn.BCELoss()
         total_loss = 0
 
         x_r, x_f = batch
 
+        bs = batch[0].shape[0]
+
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x_r.view(-1, 784), torch.ones(len(batch), 1)
+        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_real)
+        output = self(x_real.reshape(bs,784))
         real_loss = criterion(output, y_real)
 
         # train discriminator on fake
-        x_fake, y_fake = x_f, Variable(torch.zeros(len(batch), 1).to(device))
+        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
 
-        output = self(x_fake)
+        output = self(x_fake.reshape(bs,784))
         fake_loss = criterion(output, y_fake)
 
         # gradient backprop & optimize ONLY D's parameters
@@ -90,7 +91,7 @@ class KubeDiscriminator(KubeModel):
         loss.backward()
 
         # step with the optimizer
-        optimizer.step()
+        self.optimizer.step()
 
         total_loss += loss.data.item()
 
@@ -98,6 +99,44 @@ class KubeDiscriminator(KubeModel):
             logging.info(f"Index {batch_index}, error: {loss.item()}")
 
         return total_loss
+
+    def validate(self, batch, _) -> Tuple[float, float]:
+        criterion = nn.BCELoss()
+
+        x_r, x_f = batch
+
+        bs = batch[0].shape[0]
+
+        test_loss = 0
+        correct = 0
+
+        # test discriminator on real
+        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
+        x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
+
+        output = self(x_real.reshape(bs, 784))
+        real_loss = criterion(output, y_real)
+        pred = output.argmax(dim=1, keepdim=True)
+        correct += pred.eq(y_real.view_as(pred)).sum().item()
+
+        # test discriminator on fake
+        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
+
+        output = self(x_fake.reshape(bs, 784))
+        fake_loss = criterion(output, y_fake)
+        pred = output.argmax(dim=1, keepdim=True)
+        correct += pred.eq(y_fake.view_as(pred)).sum().item()
+
+        loss = real_loss + fake_loss
+        test_loss += loss.data.item()
+
+        accuracy = 100. * correct / batch[0].shape[0]
+        # self.logger.debug(f'accuracy {accuracy}')
+
+        return accuracy, test_loss
+
+    def infer(self, data: List[Any]) -> Union[torch.Tensor, np.ndarray, List[float]]:
+        pass
 
 def main():
     # set the random seeds
