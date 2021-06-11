@@ -11,6 +11,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import SGD
+import json
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -178,5 +179,7 @@ if train:
 
 infer = True
 if infer:
-    output = discriminator.infer(np.load('inference.npy'))
+    f = open('inference.json')
+    json = json.load(f)
+    output = discriminator.infer(json)
     print(output)

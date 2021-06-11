@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import json
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -39,4 +40,6 @@ with torch.no_grad():
         x_f = G(z).detach().numpy().reshape(1, 28, 28)
         x_fake.append(x_f)
 
-    np.save('inference.npy',x_fake)
+    json_str = json.dumps(np.array(x_fake).tolist())
+    with open("inference.json", "w") as f:
+        f.write(json_str)
