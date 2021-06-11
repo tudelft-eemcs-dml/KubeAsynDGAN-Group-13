@@ -26,6 +26,7 @@ class Discriminator(nn.Module):
         self.fc4 = nn.Linear(self.fc3.out_features, 1)
 
     def forward(self, x):
+        x.view(x.shape[0], -1)
         y = F.leaky_relu(self.fc1(x), 0.2)
         y = F.dropout(y, 0.3)
         y = F.leaky_relu(self.fc2(y), 0.2)
@@ -78,11 +79,13 @@ class KubeDiscriminator(KubeModel):
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
         
         output = self(x_real)
+        logging.info(f"Output is {output}")
         real_loss = criterion(output, y_real)
+        logging.info(f"real_loss {real_loss}")
 
         # train discriminator on fake
-        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
-        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
+        x_fake, y_fake = x_r.view(bs, 784), torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_fake.to(device)), Variable(y_fake.to(device))
 
         output = self(x_fake)
         fake_loss = criterion(output, y_fake)
