@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from kubeml import KubeModel, KubeDataset
-from torch.optim import Adam
+from torch.optim import SGD, Adam
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -69,21 +69,22 @@ class KubeDiscriminator(KubeModel):
 
         x_r, x_f = batch
 
-        bs = self.batch_size
+        bs = batch[0].shape[0]
 
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
+        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
-
-        output = self(x_real.reshape(bs,784))
+        
+        output = self(x_real)
         real_loss = criterion(output, y_real)
 
         # train discriminator on fake
-        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
+        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_fake.reshape(bs,784))
+        output = self(x_fake)
         fake_loss = criterion(output, y_fake)
 
         # gradient backprop & optimize ONLY D's parameters
@@ -105,24 +106,25 @@ class KubeDiscriminator(KubeModel):
 
         x_r, x_f = batch
 
-        bs = self.batch_size
+        bs = batch[0].shape[0]
 
         test_loss = 0
         correct = 0
 
         # test discriminator on real
-        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
+        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_real.reshape(bs, 784))
+        output = self(x_real)
         real_loss = criterion(output, y_real)
         pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(y_real.view_as(pred)).sum().item()
 
         # test discriminator on fake
-        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
+        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_fake.reshape(bs, 784))
+        output = self(x_fake)
         fake_loss = criterion(output, y_fake)
         pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(y_fake.view_as(pred)).sum().item()

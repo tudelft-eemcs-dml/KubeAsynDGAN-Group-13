@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
-from torch.optim import Adam
+from torch.optim import SGD
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -37,8 +37,10 @@ class Discriminator(nn.Module):
         return y
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        adam = Adam(self.parameters(), lr=self.lr)
-        return adam
+        # adam = Adam(self.parameters(), lr=self.lr)
+        # return adam
+        sgd = SGD(self.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-4)
+        return sgd
 
     def init(self):
         pass
@@ -55,16 +57,16 @@ class Discriminator(nn.Module):
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
+        x_real, y_real = x_r, torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_real.reshape(bs,784))
+        output = self(x_real)
         real_loss = criterion(output, y_real)
 
         # train discriminator on fake
         x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
 
-        output = self(x_fake.reshape(bs,784))
+        output = self(x_fake)
         fake_loss = criterion(output, y_fake)
 
         # gradient backprop & optimize ONLY D's parameters
@@ -92,18 +94,19 @@ class Discriminator(nn.Module):
         correct = 0
 
         # test discriminator on real
-        x_real, y_real = x_r.view(-1, 784), torch.ones(bs, 1)
+        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_real.reshape(bs, 784))
+        output = self(x_real)
         real_loss = criterion(output, y_real)
         pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(y_real.view_as(pred)).sum().item()
 
         # test discriminator on fake
-        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
+        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
 
-        output = self(x_fake.reshape(bs, 784))
+        output = self(x_fake)
         fake_loss = criterion(output, y_fake)
         pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(y_fake.view_as(pred)).sum().item()
@@ -145,13 +148,14 @@ random.seed(42)
 
 train_real = np.load("train_real.npy")
 train_fake = np.load("train_fake.npy")
-
+batch_size = 64
 train_set = MnistDataset(train_real, train_fake)
-train_loader = DataLoader(train_set, batch_size=100)
+train_loader = DataLoader(train_set, batch_size=batch_size)
 
 discriminator = Discriminator()
 discriminator.lr = 0.0002
 discriminator.optimizer = discriminator.configure_optimizers()
+discriminator.batch_size = batch_size
 
 for i in range(10):
     print("============ Epoch " + str(i + 1) + " ============")
