@@ -2,7 +2,7 @@ epochs = 5
 
 for i in range(epochs):
     # Generate Dataset
-    # python3 generate_dataset.py --model latest
+    # python3 generate_dataset_train.py --model latest
 
     # Enlist dataset KubeML
     # ./kubeml dataset create --name mnist_gan --traindata x_real.npy --trainlabels x_fake.npy --testdata x_real_test.npy --testlabels x_fake_test.npy
@@ -12,5 +12,5 @@ for i in range(epochs):
     # Response back job id
 
     # Train Generator locally
-    # python3 train_generate.py
+    # python3 train_generator.py
     None

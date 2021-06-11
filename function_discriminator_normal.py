@@ -122,7 +122,13 @@ class Discriminator(nn.Module):
         return accuracy, test_loss
 
     def infer(self, data: List[Any]) -> Union[torch.Tensor, np.ndarray, List[float]]:
-        pass
+        x = torch.tensor(data)
+        x = x.view(x.size(0), 784)
+        x = Variable(x.to(device))
+
+        output = self(x)
+
+        return output
 
 
 class MnistDataset(Dataset):
@@ -159,10 +165,18 @@ discriminator.lr = 0.0002
 discriminator.optimizer = discriminator.configure_optimizers()
 discriminator.batch_size = batch_size
 
-for i in range(10):
-    print("============ Epoch " + str(i + 1) + " ============")
-    for i, batch in enumerate(train_loader, start=1):
-        image, label = batch
-        # loss = discriminator.train(batch, i)
-        accuracy, loss = discriminator.validate(batch, i)
-        print("Accuracy: " + str(accuracy) + ", Loss: " + str(loss))
+train = False
+if train:
+    for i in range(10):
+        print("============ Epoch " + str(i + 1) + " ============")
+        for i, batch in enumerate(train_loader, start=1):
+            image, label = batch
+            loss = discriminator.train(batch, i)
+            print("Loss: " + str(loss))
+            # accuracy, loss = discriminator.validate(batch, i)
+            # print("Accuracy: " + str(accuracy) + ", Loss: " + str(loss))
+
+infer = True
+if infer:
+    output = discriminator.infer(np.load('inference.npy'))
+    print(output)
