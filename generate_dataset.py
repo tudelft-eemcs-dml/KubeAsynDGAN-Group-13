@@ -15,27 +15,25 @@ from torchvision.utils import save_image
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-generate = True
-download = True
+download = False
 train_size = 5000
 test_size = 1000
 
 # Get Real Dataset
-if generate:
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Normalize((0.1307,), (0.3081,))])
+transform = transforms.Compose([transforms.ToTensor(),
+                                transforms.Normalize((0.1307,), (0.3081,))])
 
-    mnist_trainset = datasets.MNIST(root='./data', train=True, download=download, transform=transform)
-    mnist_testset = datasets.MNIST(root='./data', train=False, download=download, transform=transform)
+mnist_trainset = datasets.MNIST(root='./data', train=True, download=download, transform=transform)
+mnist_testset = datasets.MNIST(root='./data', train=False, download=download, transform=transform)
 
-    train_loader = DataLoader(mnist_trainset, batch_size=len(mnist_trainset))
-    test_loader = DataLoader(mnist_testset, batch_size=len(mnist_testset))
+train_loader = DataLoader(mnist_trainset, batch_size=len(mnist_trainset))
+test_loader = DataLoader(mnist_testset, batch_size=len(mnist_testset))
 
-    train_real = next(iter(train_loader))[0].numpy()[:train_size]
-    test_real = next(iter(test_loader))[0].numpy()[:test_size]
+x_train_real = next(iter(train_loader))[0].numpy()[:train_size]
+x_test_real = next(iter(test_loader))[0].numpy()[:test_size]
+y_train = next(iter(train_loader))[1].numpy()[:train_size]
+y_test = next(iter(test_loader))[1].numpy()[:test_size]
 
-    np.save("train_real", train_real)
-    np.save("test_real", test_real)
 
 # Generate Fake dataset
 # Load latest model
@@ -77,5 +75,10 @@ with torch.no_grad():
     # Convert to ndarray and save
     train_fake = np.array(train_fake)
     test_fake = np.array(test_fake)
-    np.save("train_fake", train_fake)
-    np.save("test_fake", test_fake)
+    x_train_disc = np.stack((x_train_real, train_fake), axis=2)
+    x_test_disc = np.stack((x_test_real, test_fake), axis=2)
+
+    np.save("x_train_disc", x_train_disc)
+    np.save("x_test_disc", x_test_disc)
+    np.save("y_train_disc", y_train)
+    np.save("y_test_disc", y_test)

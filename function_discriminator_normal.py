@@ -21,19 +21,33 @@ class Discriminator(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(784, 1024)
-        self.fc2 = nn.Linear(self.fc1.out_features, self.fc1.out_features//2)
-        self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features//2)
-        self.fc4 = nn.Linear(self.fc3.out_features, 1)
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool2d(2)
+        self.fc1 = nn.Linear(256, 120)
+        self.relu3 = nn.ReLU()
+        self.fc2 = nn.Linear(120, 84)
+        self.relu4 = nn.ReLU()
+        self.fc3 = nn.Linear(84, 1)
+        self.relu5 = nn.ReLU()
 
     def forward(self, x):
-        y = F.leaky_relu(self.fc1(x), 0.2)
-        y = F.dropout(y, 0.3)
-        y = F.leaky_relu(self.fc2(y), 0.2)
-        y = F.dropout(y, 0.3)
-        y = F.leaky_relu(self.fc3(y), 0.2)
-        y = F.dropout(y, 0.3)
-        y = torch.sigmoid(self.fc4(y))
+        y = self.conv1(x)
+        y = self.relu1(y)
+        y = self.pool1(y)
+        y = self.conv2(y)
+        y = self.relu2(y)
+        y = self.pool2(y)
+        y = y.view(y.shape[0], -1)
+        y = self.fc1(y)
+        y = self.relu3(y)
+        y = self.fc2(y)
+        y = self.relu4(y)
+        y = self.fc3(y)
+        y = self.relu5(y)
         return y
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
@@ -50,22 +64,22 @@ class Discriminator(nn.Module):
         criterion = nn.BCELoss()
         total_loss = 0
 
-        x_r, x_f = batch
+        x,_ = batch
 
         bs = batch[0].shape[0]
 
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
+        x_real, y_real = x[:, :, 0], torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
         
         output = self(x_real)
         real_loss = criterion(output, y_real)
 
         # train discriminator on fake
-        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
-        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
+        x_fake, y_fake = x[:,:,1], torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_fake.to(device)), Variable(y_fake.to(device))
 
         output = self(x_fake)
         fake_loss = criterion(output, y_fake)
@@ -87,7 +101,7 @@ class Discriminator(nn.Module):
     def validate(self, batch, _) -> Tuple[float, float]:
         criterion = nn.BCELoss()
 
-        x_r, x_f = batch
+        x,_ = batch
 
         bs = batch[0].shape[0]
 
@@ -95,7 +109,7 @@ class Discriminator(nn.Module):
         correct = 0
 
         # test discriminator on real
-        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
+        x_real, y_real = x[:,:,0], torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
         output = self(x_real)
@@ -104,8 +118,8 @@ class Discriminator(nn.Module):
         correct += pred.eq(y_real.view_as(pred)).sum().item()
 
         # test discriminator on fake
-        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
-        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
+        x_fake, y_fake = x[:,:,1], torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_fake.to(device)), Variable(y_fake.to(device))
 
         output = self(x_fake)
         fake_loss = criterion(output, y_fake)
@@ -147,10 +161,10 @@ class MnistDataset(Dataset):
 torch.manual_seed(42)
 random.seed(42)
 
-train_real = np.load("train_real.npy")
-train_fake = np.load("train_fake.npy")
+x = np.load("x_train_disc.npy")
+y = np.load("y_train_disc.npy")
 batch_size = 64
-train_set = MnistDataset(train_real, train_fake)
+train_set = MnistDataset(x, y)
 train_loader = DataLoader(train_set, batch_size=batch_size)
 
 discriminator = Discriminator()
