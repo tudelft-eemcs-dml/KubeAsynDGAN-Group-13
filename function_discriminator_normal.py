@@ -57,14 +57,15 @@ class Discriminator(nn.Module):
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x_r, torch.ones(bs, 1)
+        x_real, y_real = x_r.view(bs, 784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
-
+        
         output = self(x_real)
         real_loss = criterion(output, y_real)
 
         # train discriminator on fake
-        x_fake, y_fake = x_f, Variable(torch.zeros(bs, 1).to(device))
+        x_fake, y_fake = x_f.view(bs, 784), torch.zeros(bs, 1)
+        x_fake, y_fake = Variable(x_real.to(device)), Variable(y_real.to(device))
 
         output = self(x_fake)
         fake_loss = criterion(output, y_fake)
