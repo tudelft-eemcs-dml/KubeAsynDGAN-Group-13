@@ -75,7 +75,7 @@ class KubeDiscriminator(KubeModel):
         self.optimizer.zero_grad()
 
         # train discriminator on real
-        x_real, y_real = x[:, :, 0], torch.ones(bs, 1)
+        x_real, y_real = x[:, :, 0].view(bs,784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
         
         output = self(x_real)
@@ -84,7 +84,7 @@ class KubeDiscriminator(KubeModel):
         logging.info(f"real_loss {real_loss}")
 
         # train discriminator on fake
-        x_fake, y_fake = x[:,:,1], torch.zeros(bs, 1)
+        x_fake, y_fake = x[:,:,1].view(bs,784), torch.zeros(bs, 1)
         x_fake, y_fake = Variable(x_fake.to(device)), Variable(y_fake.to(device))
 
         output = self(x_fake)
@@ -115,7 +115,7 @@ class KubeDiscriminator(KubeModel):
         correct = 0
 
         # test discriminator on real
-        x_real, y_real = x[:, :, 0], torch.ones(bs, 1)
+        x_real, y_real = x[:, :, 0].view(bs,784), torch.ones(bs, 1)
         x_real, y_real = Variable(x_real.to(device)), Variable(y_real.to(device))
 
         output = self(x_real)
@@ -124,7 +124,7 @@ class KubeDiscriminator(KubeModel):
         correct += pred.eq(y_real.view_as(pred)).sum().item()
 
         # test discriminator on fake
-        x_fake, y_fake = x[:,:,1], torch.zeros(bs, 1)
+        x_fake, y_fake = x[:,:,1].view(bs,784), torch.zeros(bs, 1)
         x_fake, y_fake = Variable(x_fake.to(device)), Variable(y_fake.to(device))
 
         output = self(x_fake)

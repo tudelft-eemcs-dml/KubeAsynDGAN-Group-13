@@ -2,14 +2,14 @@
 export KUBECONFIG=~/.kube/config
 
 # List Dataset
-./kubeml dataset create --name mnist_disc --traindata train_real.npy --trainlabels train_fake.npy --testdata test_real.npy --testlabels test_fake.npy
+./kubeml dataset create --name mnist_disc --traindata x_train_disc.npy --trainlabels y_train_disc.npy --testdata x_test_disc.npy --testlabels y_test_disc.npy
 
 # List function
 ./kubeml fn create --name discriminator --code function_discriminator.py
 ./fission fn update --name discriminator --code function_discriminator.py
 
 # Train 
-./kubeml train --function discriminator --dataset mnist_disc --epochs 100 --lr 0.01 --batch 64 --parallelism 4 --static
+./kubeml train --function discriminator --dataset mnist_disc --epochs 10 --lr 0.0002 --batch 64 --parallelism 3 --static
 
 # Logs
 ./kubeml logs --id (ID) --follow
