@@ -140,14 +140,12 @@ class KubeDiscriminator(KubeModel):
 
         return accuracy, test_loss
 
-    def infer(self, data: List[Any]) -> Union[torch.Tensor, np.ndarray, List[float]]:
-        x = torch.tensor(data)
-        x = x.view(x.size(0), 784)
-        x = Variable(x.to(device))
+    def infer(self,_,data: List[Any]) -> Union[torch.Tensor, np.ndarray, List[float]]:
+        # output = self(data.values()[0][0])
 
-        output = self(x)
+        data.view(1,781)
 
-        return output
+        return torch.rand(2, 3)
 
 def main():
     # set the random seeds

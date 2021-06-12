@@ -17,3 +17,10 @@ export KUBECONFIG=~/.kube/config
 # Inference
 ./kubeml --datafile train_real.npy --network (Network ID)
 
+fission route create --url=/discriminator --function=discriminator --method='POST'
+
+kubectl --namespace=kubeml exec -it redis-5c697c55d5-jf5qr -- redis-cli
+
+kubectl -n fission-function get pods
+
+kubectl -n fission-function logs 

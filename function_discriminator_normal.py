@@ -123,7 +123,7 @@ class Discriminator(nn.Module):
         return accuracy, test_loss
 
     def infer(self, data: List[Any]) -> Union[torch.Tensor, np.ndarray, List[float]]:
-        x = torch.tensor(data)
+        x = torch.tensor(data.values()[0])
         x = x.view(x.size(0), 784)
         x = Variable(x.to(device))
 
