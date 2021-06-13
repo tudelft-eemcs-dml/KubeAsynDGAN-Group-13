@@ -10,18 +10,11 @@ import re
 import threading
 from redisai import Client
 import time
-my_env = os.environ.copy()
-my_env["KUBECONFIG"] = os.path.expanduser(f"~/.kube/config")
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# job 
-job = '71e87af8'
-
 # todo kill this process
-def port_forward(pod):
-    subprocess.run("kubectl -n kubeml port-forward " + redispod + " 6379:6379", env=my_env, shell=True)
     
 class Generator(nn.Module):
     def __init__(self, g_input_dim, g_output_dim):
@@ -56,81 +49,68 @@ class Discriminator(nn.Module):
         x = F.dropout(x, 0.3)
         return torch.sigmoid(self.fc4(x))
 
-# Load latest generator model
-PATH = "generator_model_test"
-G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
-G.load_state_dict(torch.load(PATH))
-G.eval()
+class TrainGenerator:
+    def __init__(self, job_id):
+        # Load latest generator model
+        self.PATH = "generator_model_test"
+        self.G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
+        self.G.load_state_dict(torch.load(self.PATH))
+        self.G.eval()
 
-criterion = nn.BCELoss()
-lr = 0.0002
-G_optimizer = optim.Adam(G.parameters(), lr = lr)
+        self.criterion = nn.BCELoss()
+        self.lr = 0.0002
+        self.G_optimizer = optim.Adam(self.G.parameters(), lr = self.lr)
 
-G_losses = []
-bs = 64
+        self.G_losses = []
+        self.batch_size = 64
 
-# port forward to redisAI
-out = subprocess.check_output("kubectl -n kubeml get pods", env=my_env, shell=True)
-redispod = re.search('redis-([^\s]+)', out.decode("utf-8")).group(0)
+        con = Client(host='localhost', port=6379)
 
-print("Port forwarding to pod" + redispod)
-th = threading.Thread(target=port_forward, args=(redispod,))
-th.start()
+        print("=== GETTING LATEST MODEL ===")
+        fc1_weight = con.tensorget(job_id + ':fc1.weight')
+        fc1_bias = con.tensorget(job_id + ':fc1.bias')
+        fc2_weight = con.tensorget(job_id + ':fc2.weight')
+        fc2_bias = con.tensorget(job_id + ':fc2.bias')
+        fc3_weight = con.tensorget(job_id + ':fc3.weight')
+        fc3_bias = con.tensorget(job_id + ':fc3.bias')
+        fc4_weight = con.tensorget(job_id + ':fc4.weight')
+        fc4_bias = con.tensorget(job_id + ':fc4.bias')
 
-print("sleep 5 seconds to get the stuff running")
-time.sleep(5)
-con = Client(host='localhost', port=6379)
+        self.D_latest = Discriminator()
 
-print("=== GETTING LATEST MODEL ===")
-fc1_weight = con.tensorget(job + ':fc1.weight')
-fc1_bias = con.tensorget(job + ':fc1.bias')
-fc2_weight = con.tensorget(job + ':fc2.weight')
-fc2_bias = con.tensorget(job + ':fc2.bias')
-fc3_weight = con.tensorget(job + ':fc3.weight')
-fc3_bias = con.tensorget(job + ':fc3.bias')
-fc4_weight = con.tensorget(job + ':fc4.weight')
-fc4_bias = con.tensorget(job + ':fc4.bias')
+        with torch.no_grad():
+            self.D_latest = Discriminator().to(device)
+            self.D_latest.fc1.weight = nn.Parameter(torch.tensor(fc1_weight))
+            self.D_latest.fc1.bias = nn.Parameter(torch.tensor(fc1_bias))
+            self.D_latest.fc2.weight = nn.Parameter(torch.tensor(fc2_weight))
+            self.D_latest.fc2.bias = nn.Parameter(torch.tensor(fc2_bias))
+            self.D_latest.fc3.weight = nn.Parameter(torch.tensor(fc3_weight))
+            self.D_latest.fc3.bias = nn.Parameter(torch.tensor(fc3_bias))
+            self.D_latest.fc4.weight = nn.Parameter(torch.tensor(fc4_weight))
+            self.D_latest.fc4.bias = nn.Parameter(torch.tensor(fc4_bias))
 
-D_latest = Discriminator()
+        self.n_epochs = 100
 
-with torch.no_grad():    
-    D_latest = Discriminator().to(device)
-    D_latest.fc1.weight = nn.Parameter(torch.tensor(fc1_weight))
-    D_latest.fc1.bias = nn.Parameter(torch.tensor(fc1_bias))
-    D_latest.fc2.weight = nn.Parameter(torch.tensor(fc2_weight))
-    D_latest.fc2.bias = nn.Parameter(torch.tensor(fc2_bias))
-    D_latest.fc3.weight = nn.Parameter(torch.tensor(fc3_weight))
-    D_latest.fc3.bias = nn.Parameter(torch.tensor(fc3_bias))
-    D_latest.fc4.weight = nn.Parameter(torch.tensor(fc4_weight))
-    D_latest.fc4.bias = nn.Parameter(torch.tensor(fc4_bias))
+    def train(self):
+        for epoch in range(self.n_epochs):
+            G_losses = []
+            print("===== GENERATOR EPOCH " + str(epoch + 1) + " =====")
+            # TODO remove this loader stuff
+            for i in range(int(1000/self.batch_size)):
+                z = Variable(torch.randn(self.batch_size, 100).to(device))
+                y = Variable(torch.ones(self.batch_size, 1).to(device))
+                G_output = self.G(z)
 
-n_epochs = 10
+                D_output = self.D_latest(G_output)
 
-train_dataset = torch.from_numpy(np.load('x_train_disc.npy'))
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=bs, shuffle=True)
+                G_loss = self.criterion(D_output, y)
 
-for epoch in range(n_epochs):
-    G_losses = []
-    print("===== EPOCH " + str(epoch + 1) + " =====")
-    # TODO remove this loader stuff
-    for batch_idx, x in enumerate(train_loader):
-        x_f = x[:, :, 1] # get fake images
-        G.zero_grad()
+                # # gradient backprop & optimize ONLY G's parameters
+                G_loss.backward()
+                self.G_optimizer.step()
+                G_losses.append(G_loss.data.item())
 
-        z = Variable(torch.randn(x_f.size(0), 100).to(device))
-        y = Variable(torch.ones(x_f.size(0), 1).to(device))
-        G_output = G(z)
+            print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
 
-        D_output = D_latest(G_output)
-
-        G_loss = criterion(D_output, y)
-
-        # # gradient backprop & optimize ONLY G's parameters
-        G_loss.backward()
-        G_optimizer.step()
-        G_losses.append(G_loss.data.item())
-
-    print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
-
-# Saving new model
-# torch.save(G.state_dict(), PATH)
+        print("Saving new model")
+        torch.save(self.G.state_dict(), self.PATH)
