@@ -78,3 +78,8 @@ for i in range(main_epochs):
     generator_trainer = TrainGenerator(job_id=job_id)
     generator_trainer.train()
     print("- Generator epoch done")
+
+print("=====================================")
+print("=============== DONE ================")
+print("=====================================")
+print("- Press ctrl + c to stop the program")
