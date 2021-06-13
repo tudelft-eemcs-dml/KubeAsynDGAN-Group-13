@@ -65,30 +65,20 @@ class TrainGenerator:
         self.G_losses = []
         self.batch_size = 64
 
+        self.D_latest = Discriminator()
+
         con = Client(host='localhost', port=6379)
 
         print("=== GETTING LATEST MODEL ===")
-        fc1_weight = con.tensorget(job_id + ':fc1.weight')
-        fc1_bias = con.tensorget(job_id + ':fc1.bias')
-        fc2_weight = con.tensorget(job_id + ':fc2.weight')
-        fc2_bias = con.tensorget(job_id + ':fc2.bias')
-        fc3_weight = con.tensorget(job_id + ':fc3.weight')
-        fc3_bias = con.tensorget(job_id + ':fc3.bias')
-        fc4_weight = con.tensorget(job_id + ':fc4.weight')
-        fc4_bias = con.tensorget(job_id + ':fc4.bias')
+        state_dict = dict()
+        for name in self.D_latest.state_dict():
+            # load each of the layers in the statedict
+            weight_key = f'{job_id}:{name}'
+            w = con.tensorget(weight_key)
+            # set the weight
+            state_dict[weight_key[len(job_id) + 1:]] = torch.from_numpy(w)
 
-        self.D_latest = Discriminator()
-
-        with torch.no_grad():
-            self.D_latest = Discriminator().to(device)
-            self.D_latest.fc1.weight = nn.Parameter(torch.tensor(fc1_weight))
-            self.D_latest.fc1.bias = nn.Parameter(torch.tensor(fc1_bias))
-            self.D_latest.fc2.weight = nn.Parameter(torch.tensor(fc2_weight))
-            self.D_latest.fc2.bias = nn.Parameter(torch.tensor(fc2_bias))
-            self.D_latest.fc3.weight = nn.Parameter(torch.tensor(fc3_weight))
-            self.D_latest.fc3.bias = nn.Parameter(torch.tensor(fc3_bias))
-            self.D_latest.fc4.weight = nn.Parameter(torch.tensor(fc4_weight))
-            self.D_latest.fc4.bias = nn.Parameter(torch.tensor(fc4_bias))
+        self.D_latest.load_state_dict(state_dict)
 
         self.n_epochs = 100
 
@@ -114,4 +104,4 @@ class TrainGenerator:
             print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
 
         print("Saving new model")
-        torch.save(self.G.state_dict(), self.PATH + "_DISC")
+        torch.save(self.G.state_dict(), self.PATH + "_STATEDICT")
