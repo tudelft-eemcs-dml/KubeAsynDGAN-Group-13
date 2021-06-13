@@ -53,7 +53,7 @@ class Discriminator(nn.Module):
 class TrainGenerator:
     def __init__(self, job_id):
         # Load latest generator model
-        self.PATH = "generator_model_test"
+        self.PATH = "latest_model"
         self.G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
         self.G.load_state_dict(torch.load(self.PATH))
         self.G.eval()
@@ -104,4 +104,4 @@ class TrainGenerator:
             print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
 
         print("Saving new model")
-        torch.save(self.G.state_dict(), self.PATH + "_STATEDICT")
+        torch.save(self.G.state_dict(), self.PATH)

@@ -5,7 +5,7 @@ import threading
 import time
 my_env = os.environ.copy()
 my_env["KUBECONFIG"] = os.path.expanduser(f"~/.kube/config")
-main_epochs = 5
+main_epochs = 10
 disc_epochs = 1
 gen_epochs = 1
 refresh_dataset=True
@@ -43,7 +43,7 @@ for i in range(main_epochs):
     
     # Train Discriminator with KubeML
     print("=== Training Discriminator on KubeML ===")
-    out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 10 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
+    out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 100 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
     out = out.decode("utf-8")
     job_id = re.sub(r"\W", "", out)
     # TODO: fix newline part
@@ -55,11 +55,13 @@ for i in range(main_epochs):
         continue
 
     # This could go after we have fixed the discriminator update!
+    print("Checking if KubeML Discriminator training job is finished.", end='', flush=True)
     while True:
-        print("Checking if KubeML Discriminator training job is finished...")
+        print('.', end='', flush=True)
         time.sleep(5)
         out = subprocess.check_output("./kubeml task list", env=my_env, shell=True).decode("utf-8")
         if job_id not in out:
+            print('')
             print("job finished")
             break
 
