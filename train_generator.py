@@ -10,6 +10,7 @@ import re
 import threading
 from redisai import Client
 import time
+from datetime import datetime
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -109,8 +110,8 @@ class TrainGenerator:
                 G_loss.backward()
                 self.G_optimizer.step()
                 G_losses.append(G_loss.data.item())
-
+            
             print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
 
         print("Saving new model")
-        torch.save(self.G.state_dict(), self.PATH)
+        torch.save(self.G.state_dict(), self.PATH + "_DISC")
