@@ -6,9 +6,8 @@ import time
 my_env = os.environ.copy()
 my_env["KUBECONFIG"] = os.path.expanduser(f"~/.kube/config")
 main_epochs = 10
-# TODO: set these epochs
-disc_epochs = 100
-gen_epochs = 100
+disc_epochs = 1
+gen_epochs = 1
 refresh_dataset=True
 
 def port_forward(pod):
@@ -23,6 +22,7 @@ th = threading.Thread(target=port_forward, args=(redispod,))
 th.start()
 print("sleep 5 seconds to get the stuff running")
 time.sleep(5)
+job_id = None
 
 for i in range(main_epochs):
     print("===== MAIN EPOCH " + str(i + 1) + " =====")
@@ -38,36 +38,38 @@ for i in range(main_epochs):
         out = subprocess.check_output("./kubeml dataset delete --name mnist_gan", shell=True, env=my_env)
         print(out.decode("utf-8"))
         print("=== Enlisting new dataset in KubeML ===")
-        # TODO: set all these variables globally
         out = subprocess.check_output('./kubeml dataset create --name mnist_gan --traindata x_train_disc.npy --trainlabels y_train_disc.npy --testdata x_test_disc.npy --testlabels y_test_disc.npy', shell=True, env=my_env)
         print(out.decode("utf-8"))
 
     
-    # Train Discriminator with KubeML
-    print("=== Starting Training Discriminator on KubeML ===")
-    out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 100 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
-    out = out.decode("utf-8")
-    job_id = re.sub(r"\W", "", out)
-    if len(job_id) < 10:
-        print("job ID: " + job_id)
-    else:
-        print(job_id)
-        print("Could not find job_id")
-        continue
+    # Start Discriminator training with KubeML
+    if job_id is None:
+        print("=== Starting Training Discriminator on KubeML ===")
+        out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 100 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
+        out = out.decode("utf-8")
+        job_id = re.sub(r"\W", "", out)
+        # TODO: fix newline part
+        if len(job_id) < 10:
+            print("job ID: " + job_id)
+        else:
+            print(job_id)
+            print("Could not find job_id")
+            continue
 
-#
-    # This could go after we have fixed the discriminator update!
-    print("Checking if KubeML Discriminator training job is finished.", end='', flush=True)
+    # Check if New Epoch is Done:
+    print("Checking if Discriminator Epoch is Done.", end='', flush=True)
+    print('.', end='', flush=True)
     while True:
-        print('.', end='', flush=True)
-        time.sleep(5)
-        out = subprocess.check_output("./kubeml task list", env=my_env, shell=True).decode("utf-8")
-        if job_id not in out:
-            print('')
-            print("job finished")
+        time.sleep(10)
+        out = subprocess.check_output("./kubeml logs --id " + job_id)
+        out = out.decode('utf-8')
+        match_string = "{\"epoch\": " + str(i + 1) + "}"
+        if match_string in out:
             break
 
     # Train Generator locally
     print("=== Train Generator Locally with new Discriminator Model===")
+    # TODO: Set batch_size and set dataset size, set run epoch
+    # TODO: Set Loss in File
     generator_trainer = TrainGenerator(job_id=job_id)
     generator_trainer.train()

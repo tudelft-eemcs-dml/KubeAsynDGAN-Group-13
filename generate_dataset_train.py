@@ -11,8 +11,8 @@ from torch.autograd import Variable
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 download = False
-train_size = 5000
-test_size = 1000
+train_size = 60000
+test_size = 10000
 
 # Get Real Dataset
 transform = transforms.Compose([transforms.ToTensor(),
@@ -47,7 +47,7 @@ class Generator(nn.Module):
         x = F.leaky_relu(self.fc3(x), 0.2)
         return torch.tanh(self.fc4(x))
 
-PATH = "generator_model_test"
+PATH = "models/generator_model_test"
 G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
 G.load_state_dict(torch.load(PATH))
 G.eval()

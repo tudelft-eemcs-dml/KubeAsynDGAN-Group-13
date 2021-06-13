@@ -24,7 +24,7 @@ class Generator(nn.Module):
         x = F.leaky_relu(self.fc3(x), 0.2)
         return torch.tanh(self.fc4(x))
 
-PATH = "generator_model_test"
+PATH = "../models/generator_model_test"
 G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
 G.load_state_dict(torch.load(PATH))
 G.eval()
@@ -41,5 +41,5 @@ with torch.no_grad():
         x_fake.append(x_f)
 
     json_str = json.dumps(np.array(x_fake).tolist())
-    with open("inference.json", "w") as f:
+    with open("../inference.json", "w") as f:
         f.write(json_str)

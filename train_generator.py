@@ -53,7 +53,7 @@ class Discriminator(nn.Module):
 class TrainGenerator:
     def __init__(self, job_id):
         # Load latest generator model
-        self.PATH = "latest_model"
+        self.PATH = "models/latest_model"
         self.G = Generator(g_input_dim = 100, g_output_dim = 784).to(device)
         self.G.load_state_dict(torch.load(self.PATH))
         self.G.eval()
@@ -63,6 +63,7 @@ class TrainGenerator:
         self.G_optimizer = optim.Adam(self.G.parameters(), lr = self.lr)
 
         self.G_losses = []
+        self.dataset_size = 60000
         self.batch_size = 64
 
         self.D_latest = Discriminator()
@@ -83,25 +84,23 @@ class TrainGenerator:
         self.n_epochs = 100
 
     def train(self):
-        for epoch in range(self.n_epochs):
-            G_losses = []
-            print("===== GENERATOR EPOCH " + str(epoch + 1) + " =====")
-            # TODO remove this loader stuff
-            for i in range(int(1000/self.batch_size)):
-                z = Variable(torch.randn(self.batch_size, 100).to(device))
-                y = Variable(torch.ones(self.batch_size, 1).to(device))
-                G_output = self.G(z)
+        G_losses = []
+        print("===== GENERATOR EPOCH " + str(epoch + 1) + " =====")
+        # TODO remove this loader stuff
+        for i in range(int(self.dataset_size/self.batch_size)):
+            z = Variable(torch.randn(self.batch_size, 100).to(device))
+            y = Variable(torch.ones(self.batch_size, 1).to(device))
+            G_output = self.G(z)
 
-                D_output = self.D_latest(G_output)
+            D_output = self.D_latest(G_output)
 
-                G_loss = self.criterion(D_output, y)
+            G_loss = self.criterion(D_output, y)
 
-                # # gradient backprop & optimize ONLY G's parameters
-                G_loss.backward()
-                self.G_optimizer.step()
-                G_losses.append(G_loss.data.item())
-            
-            print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
+            # # gradient backprop & optimize ONLY G's parameters
+            G_loss.backward()
+            self.G_optimizer.step()
+            G_losses.append(G_loss.data.item())
 
+        print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
         print("Saving new model")
         torch.save(self.G.state_dict(), self.PATH)

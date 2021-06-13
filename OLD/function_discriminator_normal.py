@@ -155,8 +155,8 @@ class MnistDataset(Dataset):
 torch.manual_seed(42)
 random.seed(42)
 
-x = np.load("x_train_disc.npy")
-y = np.load("y_train_disc.npy")
+x = np.load("../x_train_disc.npy")
+y = np.load("../y_train_disc.npy")
 batch_size = 64
 train_set = MnistDataset(x, y)
 train_loader = DataLoader(train_set, batch_size=batch_size)
@@ -179,7 +179,7 @@ if train:
 
 infer = True
 if infer:
-    f = open('inference.json')
+    f = open('../inference.json')
     json = json.load(f)
     output = discriminator.infer(json)
     print(output)
