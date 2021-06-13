@@ -70,7 +70,7 @@ class TrainGenerator:
 
         con = Client(host='localhost', port=6379)
 
-        print("=== GETTING LATEST MODEL ===")
+        print("- Getting latest model")
         state_dict = dict()
         for name in self.D_latest.state_dict():
             # load each of the layers in the statedict
@@ -85,7 +85,6 @@ class TrainGenerator:
 
     def train(self):
         G_losses = []
-        print("===== GENERATOR EPOCH " + str(epoch + 1) + " =====")
         # TODO remove this loader stuff
         for i in range(int(self.dataset_size/self.batch_size)):
             z = Variable(torch.randn(self.batch_size, 100).to(device))
@@ -101,6 +100,6 @@ class TrainGenerator:
             self.G_optimizer.step()
             G_losses.append(G_loss.data.item())
 
-        print("Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
-        print("Saving new model")
+        print("- Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
+        print("- Saving new model")
         torch.save(self.G.state_dict(), self.PATH)

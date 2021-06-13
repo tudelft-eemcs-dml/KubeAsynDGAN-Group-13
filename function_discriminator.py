@@ -70,7 +70,7 @@ class KubeDiscriminator(KubeModel):
 
         x,_ = batch
 
-        bs = self.batch_size
+        bs = x.size(0)
 
         self.optimizer.zero_grad()
 
@@ -109,7 +109,7 @@ class KubeDiscriminator(KubeModel):
 
         x,_ = batch
 
-        bs = self.batch_size
+        bs = x.size(0)
 
         test_loss = 0
         correct = 0

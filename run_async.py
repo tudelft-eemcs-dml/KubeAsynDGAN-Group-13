@@ -17,59 +17,64 @@ def port_forward(pod):
 out = subprocess.check_output("kubectl -n kubeml get pods", env=my_env, shell=True)
 redispod = re.search('redis-([^\s]+)', out.decode("utf-8")).group(0)
 
-print("Port forwarding to pod" + redispod)
+print("=====================================")
+print("===== ASynDGAN TRAINING PROCESS =====")
+print("=====================================")
+print("- Port forwarding to pod" + redispod)
 th = threading.Thread(target=port_forward, args=(redispod,))
 th.start()
-print("sleep 5 seconds to get the stuff running")
+print("- Sleep 5 seconds to get the stuff running")
 time.sleep(5)
 job_id = None
 
 for i in range(main_epochs):
-    print("===== MAIN EPOCH " + str(i + 1) + " =====")
+    print("===== EPOCH " + str(i + 1) + " =====")
     # # Generate Dataset
-    print("=== Generating new dataset from updated generator ===")
+    print("--> Generating new dataset from updated generator")
     out = subprocess.check_output("python3 generate_dataset_train.py", shell=True)
-    # print(out)
-    print("Dataset Done")
+    print("- Generated")
 
     # Enlist dataset KubeML
     if refresh_dataset:
-        print("=== Removing old dataset from KubeML ===")
+        print("--> Removing old dataset from KubeML")
         out = subprocess.check_output("./kubeml dataset delete --name mnist_gan", shell=True, env=my_env)
         print(out.decode("utf-8"))
-        print("=== Enlisting new dataset in KubeML ===")
+        print("--> Enlisting new dataset in KubeML")
         out = subprocess.check_output('./kubeml dataset create --name mnist_gan --traindata x_train_disc.npy --trainlabels y_train_disc.npy --testdata x_test_disc.npy --testlabels y_test_disc.npy', shell=True, env=my_env)
         print(out.decode("utf-8"))
 
     
     # Start Discriminator training with KubeML
     if job_id is None:
-        print("=== Starting Training Discriminator on KubeML ===")
-        out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 100 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
+        print("--> Starting Training Discriminator on KubeML")
+        out = subprocess.check_output("./kubeml train --function discriminator --dataset mnist_gan --epochs 1000 --lr 0.0002 --batch 64 --parallelism 7 --static", env=my_env, shell=True)
         out = out.decode("utf-8")
         job_id = re.sub(r"\W", "", out)
         # TODO: fix newline part
         if len(job_id) < 10:
-            print("job ID: " + job_id)
+            print("- job ID: " + job_id)
         else:
             print(job_id)
-            print("Could not find job_id")
+            print("- Could not find job_id, skipping Epoch")
             continue
 
     # Check if New Epoch is Done:
-    print("Checking if Discriminator Epoch is Done.", end='', flush=True)
-    print('.', end='', flush=True)
+    print("--> Checking if Discriminator 10 Epochs are Done.", end='', flush=True)
     while True:
-        time.sleep(10)
-        out = subprocess.check_output("./kubeml logs --id " + job_id)
+        time.sleep(5)
+        out = subprocess.check_output("./kubeml logs --id " + job_id, env=my_env, shell=True)
         out = out.decode('utf-8')
-        match_string = "{\"epoch\": " + str(i + 1) + "}"
+        match_string = "{\"epoch\": " + str(10*(i + 1)) + "}"
         if match_string in out:
             break
+        print('.', end='', flush=True)
+    print("")
+    # print(out)
 
     # Train Generator locally
-    print("=== Train Generator Locally with new Discriminator Model===")
+    print("--> Train Generator Locally with new Discriminator Model")
     # TODO: Set batch_size and set dataset size, set run epoch
     # TODO: Set Loss in File
     generator_trainer = TrainGenerator(job_id=job_id)
     generator_trainer.train()
+    print("- Generator epoch done")
