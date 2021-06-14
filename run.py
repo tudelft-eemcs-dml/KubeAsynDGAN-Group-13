@@ -9,7 +9,7 @@ import time
 from redisai import Client
 my_env = os.environ.copy()
 my_env["KUBECONFIG"] = os.path.expanduser(f"~/.kube/config")
-main_epochs = 10
+main_epochs = 100
 # TODO: set these epochs
 disc_epochs = 100
 gen_epochs = 100
@@ -67,7 +67,7 @@ with torch.no_grad():
 print("- Keys set")
 
 for i in range(main_epochs):
-    print("===== MAIN EPOCH " + str(i + 1) + " =====")
+    print("===== EPOCH " + str(i + 1) + " =====")
     # # Set Discriminator tensor keys
 
     # # Generate Dataset
@@ -89,7 +89,7 @@ for i in range(main_epochs):
     
     # Train Discriminator with KubeML
     print("--> Starting Training Discriminator on KubeML")
-    out = subprocess.check_output("./kubeml train --function disc-load --dataset mnist_gan --epochs 10 --lr 0.0002 --batch 64 --parallelism 1 --static", env=my_env, shell=True)
+    out = subprocess.check_output("./kubeml train --function disc-load --dataset mnist_gan --epochs 1 --lr 0.0002 --batch 64 --parallelism 1 --static", env=my_env, shell=True)
     out = out.decode("utf-8")
     job_id = re.sub(r"\W", "", out)
     if len(job_id) < 10:

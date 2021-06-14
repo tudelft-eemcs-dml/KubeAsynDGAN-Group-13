@@ -103,3 +103,4 @@ class TrainGenerator:
         print("- Loss: " + str(torch.mean(torch.FloatTensor(G_losses))))
         print("- Saving new model")
         torch.save(self.G.state_dict(), self.PATH)
+
