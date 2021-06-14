@@ -18,7 +18,7 @@ out = subprocess.check_output("kubectl -n kubeml get pods", env=my_env, shell=Tr
 redispod = re.search('redis-([^\s]+)', out.decode("utf-8")).group(0)
 
 print("=====================================")
-print("===== ASynDGAN TRAINING PROCESS =====")
+print("=== KubeASynDGAN TRAINING PROCESS ===")
 print("=====================================")
 print("- Port forwarding to pod" + redispod)
 th = threading.Thread(target=port_forward, args=(redispod,))
