@@ -76,7 +76,7 @@ for i in range(main_epochs):
     # TODO: Set batch_size and set dataset size, set run epoch
     # TODO: Set Loss in File
     generator_trainer = TrainGenerator(job_id=job_id)
-    generator_trainer.train()
+   loss = generator_trainer.train()
     print("- Generator epoch done")
 
 print("=====================================")
