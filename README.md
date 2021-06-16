@@ -4,7 +4,7 @@ This repository features an implementation for a reproduction for the paper "Syn
 
 * Install the KubeML CLI with `curl -Lo kubeml https://github.com/diegostock12/kubeml/releases/download/0.1.2/kubeml && chmod +x kubeml`
 
-* Run sh cluster_config.sh on a GKE cloud shell to set up the rest of system
+* Run `sh cluster_config.sh` on a GKE cloud shell to set up the rest of system
 
 ### Running the KubeAsynDGAN training script
 
